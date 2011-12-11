@@ -10,10 +10,15 @@ import se.krka.kahlua.threading.ThreadSafeLuaState;
 import se.krka.kahlua.vm.LuaClosure;
 
 public class Lua {
-	public static final ThreadSafeLuaState state;
-	public static final LuaConverterManager manager;
-	public static final LuaJavaClassExposer exposer;
+	public static final Lua GLOBAL_CONTEXT;
+	public final ThreadSafeLuaState state;
+	public final LuaConverterManager manager;
+	public final LuaJavaClassExposer exposer;
 	static {
+		GLOBAL_CONTEXT = new Lua();
+	}
+
+	public Lua() {
 		state = new ThreadSafeLuaState(System.out);
 		manager = new LuaConverterManager();
 		LuaNumberConverter.install(manager);
@@ -27,7 +32,7 @@ public class Lua {
 		exposer.exposeClass(LuaSimplex.class);
 	}
 
-	public static Object[] run(String source) throws LuaException {
+	public Object[] run(String source) throws LuaException {
 		try {
 			LuaClosure closure;
 			try {

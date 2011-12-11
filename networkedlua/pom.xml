@@ -1,20 +1,18 @@
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
-
+	<parent>
+		<artifactId>gamelib</artifactId>
+		<groupId>net.llamaslayers.gamelib</groupId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
 	<groupId>net.llamaslayers.gamelib</groupId>
-	<artifactId>scriptingbase</artifactId>
+	<artifactId>networkedlua</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
 
-	<name>GameLib-ScriptingBase</name>
+	<name>GameLib-NetworkedLua</name>
 	<url>http://maven.apache.org</url>
-
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
-
 	<build>
 		<plugins>
 			<plugin>
@@ -60,15 +58,22 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>scripting</artifactId>
+			<artifactId>networking</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-	 <dependency>
-	  <groupId>junit</groupId>
-	  <artifactId>junit</artifactId>
-	  <version>4.9</version>
-	  <scope>test</scope>
-	  <type>jar</type>
-	 </dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scriptingbase</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	    <dependency>
+	        <groupId>junit</groupId>
+	        <artifactId>junit</artifactId>
+	        <version>4.8.2</version>
+	        <scope>test</scope>
+	    </dependency>
 	</dependencies>
+    <properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 </project>

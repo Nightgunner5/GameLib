@@ -86,7 +86,6 @@ public class ClientServerTest extends TestCase {
 
 	private static class Packet3 implements Serializable {
 		private static final long serialVersionUID = 1L;
-
 		public final ArrayList<String> data = new ArrayList<String>();
 
 		public Packet3 add(String text) {
@@ -123,25 +122,37 @@ public class ClientServerTest extends TestCase {
 		public Client(InetAddress ip, int port, ArrayList<Serializable> packetsRecieved) throws IOException {
 			super(ip, port);
 			this.packetsRecieved = packetsRecieved;
+			new ListenThread().start();
 		}
 
-		@Override
-		protected void process(Serializable packet) {
-			if (packet instanceof PacketFinished) {
-				synchronized (this) {
-					notify();
+		private class ListenThread extends Thread {
+			@Override
+			public void run() {
+				while (!Client.this.finished() && !interrupted()) {
+					Serializable packet;
+					try {
+						packet = Client.this.waitForPacket();
+					} catch (InterruptedException ex) {
+						break;
+					}
+					if (packet instanceof PacketFinished) {
+						Client.this.write(DisconnectPacket.DISCONNECT);
+						synchronized (Client.this) {
+							Client.this.notify();
+						}
+						Client.this.interrupt();
+						return;
+					}
+					packetsRecieved.add(packet);
 				}
-				interrupt();
-				return;
 			}
-			packetsRecieved.add(packet);
 		}
 	}
 
 	public void testDataOrder() throws IOException, InterruptedException {
 		ArrayList<Serializable> packetsSent = new ArrayList<Serializable>();
 		ArrayList<Serializable> packetsRecieved = new ArrayList<Serializable>();
-		AbstractClient client = new Client(InetAddress.getByName("nightgunner5.is-a-geek.net"), SERVER_PORT, packetsRecieved);
+		AbstractClient client = new Client(InetAddress.getLocalHost(), SERVER_PORT, packetsRecieved);
 		client.start();
 
 		packetsSent.add(new Packet1());
@@ -162,7 +173,7 @@ public class ClientServerTest extends TestCase {
 	public void testComplexSerialization() throws IOException, InterruptedException {
 		ArrayList<Serializable> packetsSent = new ArrayList<Serializable>();
 		ArrayList<Serializable> packetsRecieved = new ArrayList<Serializable>();
-		AbstractClient client = new Client(InetAddress.getByName("nightgunner5.is-a-geek.net"), SERVER_PORT, packetsRecieved);
+		AbstractClient client = new Client(InetAddress.getLocalHost(), SERVER_PORT, packetsRecieved);
 		client.start();
 
 		packetsSent.add(new Packet3().add("This").add("is").add(null).add("a").add("test"));

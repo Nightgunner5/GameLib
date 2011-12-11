@@ -39,14 +39,22 @@ public final class ServerClient extends Thread {
 		while (!interrupted()) {
 			try {
 				Serializable s = (Serializable) in.readObject();
-				synchronized (queue) {
-					queue.add(s);
-					queue.notify();
+				if (s instanceof DisconnectPacket) {
+					if (!((DisconnectPacket) s).response) {
+						write(DisconnectPacket.DISCONNECT_ACK);
+					}
+					interrupt();
+				} else {
+					synchronized (queue) {
+						queue.add(s);
+						queue.notify();
+					}
 				}
 			} catch (EOFException ex) {
 				interrupt();
 			} catch (IOException ex) {
-				Logger.getLogger(ServerClient.class.getName()).log(Level.SEVERE, null, ex);
+				if (!interrupted())
+					Logger.getLogger(ServerClient.class.getName()).log(Level.SEVERE, null, ex);
 				interrupt();
 			} catch (ClassNotFoundException ex) {
 				Logger.getLogger(ServerClient.class.getName()).log(Level.SEVERE, null, ex);
