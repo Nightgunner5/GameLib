@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import se.krka.kahlua.converter.*;
 import se.krka.kahlua.integration.expose.LuaJavaClassExposer;
+import se.krka.kahlua.integration.processor.LuaMethodDebugInformation;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.threading.ThreadSafeLuaState;
 import se.krka.kahlua.vm.LuaClosure;
@@ -19,13 +20,21 @@ public class Lua {
 		LuaTableConverter.install(manager);
 		exposer = new LuaJavaClassExposer(state, manager);
 
+		exposer.exposeGlobalFunctions(exposer);
+		exposer.exposeClass(LuaMethodDebugInformation.class);
+
 		exposer.exposeClass(LuaRandom.class);
 		exposer.exposeClass(LuaSimplex.class);
 	}
 
 	public static Object[] run(String source) throws LuaException {
 		try {
-			LuaClosure closure = LuaCompiler.loadstring(source, "", state.getEnvironment());
+			LuaClosure closure;
+			try {
+				closure = LuaCompiler.loadstring(source, "", state.getEnvironment());
+			} catch (se.krka.kahlua.vm.LuaException ex) {
+				throw new LuaException(ex.getMessage(), ex);
+			}
 			Object[] result = state.pcall(closure);
 			if ((Boolean) result[0])
 				return Arrays.copyOfRange(result, 1, result.length);

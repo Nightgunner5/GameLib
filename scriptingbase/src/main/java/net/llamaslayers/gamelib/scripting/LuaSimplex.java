@@ -8,16 +8,14 @@ public class LuaSimplex implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@LuaConstructor(name = "Simplex")
-	@Desc("")
-	public LuaSimplex(@Desc("") LuaRandom r) {
+	public LuaSimplex(LuaRandom r) {
 		for (int i = 0; i < 256; i++) {
 			p[256 + i] = p[i] = r.nextInt(256);
 		}
 	}
 
-	@LuaMethod(name = "Noise3D")
-	@Desc("")
-	public double noise(@Desc("") double x, @Desc("") double y, @Desc("") double z, @Desc("") int octaves) {
+	@LuaMethod(name = "noise3D")
+	public double noise(double x, double y, double z, int octaves) {
 		double max = 0;
 		double mul = 1;
 		double result = 0;

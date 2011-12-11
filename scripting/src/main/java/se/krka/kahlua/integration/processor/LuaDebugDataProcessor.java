@@ -101,7 +101,7 @@ public class LuaDebugDataProcessor implements Processor, ElementVisitor<Void, Lu
 				element.accept(this, null);
 			}
 		}
-		
+
 		if (arg1.processingOver()) {
 			//prettyPrint();
 			try {
@@ -128,14 +128,14 @@ public class LuaDebugDataProcessor implements Processor, ElementVisitor<Void, Lu
 		LuaClassDebugInformation classDebugInfo = getOrCreate(classes, className, packageName, findSimpleClassName(element));
 
 		String methodName = element.getSimpleName().toString();
-		
+
 		LuaMethodDebugInformation methodInfo = new LuaMethodDebugInformation();
-		
+
 		// Default values - may be overridden
 		methodInfo.methodName = methodName;
 		methodInfo.isMethod = true;
 		methodInfo.returnType = element.getReturnType().toString();
-		
+
 		for (AnnotationMirror mirror: element.getAnnotationMirrors()) {
 			if (mirror.getAnnotationType().toString().equals(LuaMethod.class.getName())) {
 				Map<? extends ExecutableElement, ? extends AnnotationValue> values = mirror.getElementValues();
@@ -164,7 +164,7 @@ public class LuaDebugDataProcessor implements Processor, ElementVisitor<Void, Lu
 					}
 				}
 				methodInfo.isMethod = false;
-				methodInfo.returnType = className; 
+				methodInfo.returnType = className;
 			} else if (mirror.getAnnotationType().toString().equals(Desc.class.getName())) {
 				Map<? extends ExecutableElement, ? extends AnnotationValue> values = mirror.getElementValues();
 				Set<? extends ExecutableElement> name = values.keySet();
@@ -176,13 +176,13 @@ public class LuaDebugDataProcessor implements Processor, ElementVisitor<Void, Lu
 				}
 			}
 		}
-		
+
 		for (VariableElement e: element.getParameters()) {
 			e.accept(this, methodInfo);
 		}
-		
+
 		classDebugInfo.methods.put(methodInfo.methodName, methodInfo);
-		
+
 		return null;
 	}
 
@@ -249,7 +249,7 @@ public class LuaDebugDataProcessor implements Processor, ElementVisitor<Void, Lu
 				}
 			}
 		}
-		if (type.equals(ReturnValues.class.getName()) && arg1.parameterNames.size() == 0) {
+		if (type.equals(ReturnValues.class.getName()) && arg1.parameterNames.isEmpty()) {
 			 arg1.returnDescription = desc;
 			 arg1.returnType = "multiple values";
 		} else {
