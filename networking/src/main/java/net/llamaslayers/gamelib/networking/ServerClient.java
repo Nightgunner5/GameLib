@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,8 +17,8 @@ public final class ServerClient extends Thread {
 	private final int id;
 	private final AbstractServer server;
 	private final Socket socket;
-	private final ObjectInputStream in;
-	private final ObjectOutputStream out;
+	private final AtomicReference<ObjectInputStream> in;
+	private final AtomicReference<ObjectOutputStream> out;
 	private final Deque<Serializable> queue = new LinkedList<Serializable>();
 
 	ServerClient(Socket socket, int id, ThreadGroup group, AbstractServer server) throws IOException {
@@ -27,18 +28,18 @@ public final class ServerClient extends Thread {
 		this.socket = socket;
 		socket.setSoTimeout(30000);
 		socket.getOutputStream().write('S');
-		out = new ObjectOutputStream(socket.getOutputStream());
+		out = new AtomicReference<ObjectOutputStream>(new ObjectOutputStream(socket.getOutputStream()));
 		int clientInit = socket.getInputStream().read();
 		if (clientInit != 'C')
 			throw new IOException("Client INIT " + (char) clientInit + " != C");
-		in = new ObjectInputStream(socket.getInputStream());
+		in = new AtomicReference<ObjectInputStream>(new ObjectInputStream(socket.getInputStream()));
 	}
 
 	@Override
 	public void run() {
 		while (!interrupted()) {
 			try {
-				Serializable s = (Serializable) in.readObject();
+				Serializable s = (Serializable) in.get().readObject();
 				if (s instanceof DisconnectPacket) {
 					if (!((DisconnectPacket) s).response) {
 						write(DisconnectPacket.DISCONNECT_ACK);
@@ -49,6 +50,8 @@ public final class ServerClient extends Thread {
 						queue.add(s);
 						queue.notify();
 					}
+					in.get().close();
+					in.set(new ObjectInputStream(socket.getInputStream()));
 				}
 			} catch (EOFException ex) {
 				interrupt();
@@ -62,9 +65,15 @@ public final class ServerClient extends Thread {
 			}
 		}
 		try {
+			in.get().close();
+			out.get().close();
 			socket.close();
 		} catch (IOException ex) {
 			Logger.getLogger(ServerClient.class.getName()).log(Level.SEVERE, null, ex);
+		} finally {
+			if (finished()) {
+				server.clientIsFinished(this);
+			}
 		}
 	}
 
@@ -74,8 +83,10 @@ public final class ServerClient extends Thread {
 		}
 		synchronized (out) {
 			try {
-				out.writeObject(packet);
-				out.flush();
+				out.get().writeObject(packet);
+				out.get().flush();
+				out.get().close();
+				out.set(new ObjectOutputStream(socket.getOutputStream()));
 			} catch (IOException ex) {
 				Logger.getLogger(ServerClient.class.getName()).log(Level.SEVERE, null, ex);
 				interrupt();

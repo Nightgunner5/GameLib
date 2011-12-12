@@ -10,31 +10,32 @@ import java.net.Socket;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class AbstractClient extends Thread {
 	private final Socket socket;
-	private final ObjectInputStream in;
-	private final ObjectOutputStream out;
+	private final AtomicReference<ObjectInputStream> in;
+	private final AtomicReference<ObjectOutputStream> out;
 	private final Deque<Serializable> queue = new LinkedList<Serializable>();
 
 	public AbstractClient(InetAddress ip, int port) throws IOException {
 		socket = new Socket(ip, port);
 		socket.getOutputStream().write('C');
-		out = new ObjectOutputStream(socket.getOutputStream());
+		out = new AtomicReference<ObjectOutputStream>(new ObjectOutputStream(socket.getOutputStream()));
 		int serverInit = socket.getInputStream().read();
 		if (serverInit != 'S') {
 			throw new IOException("Server INIT " + (char) serverInit + " != S");
 		}
-		in = new ObjectInputStream(socket.getInputStream());
+		in = new AtomicReference<ObjectInputStream>(new ObjectInputStream(socket.getInputStream()));
 	}
 
 	@Override
 	public void run() {
 		while (!interrupted()) {
 			try {
-				Serializable s = (Serializable) in.readObject();
+				Serializable s = (Serializable) in.get().readObject();
 				if (s instanceof DisconnectPacket) {
 					if (!((DisconnectPacket) s).response) {
 						write(DisconnectPacket.DISCONNECT_ACK);
@@ -45,6 +46,8 @@ public abstract class AbstractClient extends Thread {
 						queue.add(s);
 						queue.notify();
 					}
+					in.get().close();
+					in.set(new ObjectInputStream(socket.getInputStream()));
 				}
 			} catch (EOFException ex) {
 				interrupt();
@@ -57,6 +60,8 @@ public abstract class AbstractClient extends Thread {
 			}
 		}
 		try {
+			in.get().close();
+			out.get().close();
 			socket.close();
 		} catch (IOException ex) {
 			Logger.getLogger(AbstractClient.class.getName()).log(Level.SEVERE, null, ex);
@@ -72,8 +77,10 @@ public abstract class AbstractClient extends Thread {
 		}
 		synchronized (out) {
 			try {
-				out.writeObject(packet);
-				out.flush();
+				out.get().writeObject(packet);
+				out.get().flush();
+				out.get().close();
+				out.set(new ObjectOutputStream(socket.getOutputStream()));
 			} catch (IOException ex) {
 				Logger.getLogger(AbstractClient.class.getName()).log(Level.SEVERE, null, ex);
 				interrupt();
