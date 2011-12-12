@@ -2,8 +2,10 @@ package net.llamaslayers.gamelib.networking;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -18,17 +20,21 @@ public abstract class AbstractClient extends Thread {
 	private final Socket socket;
 	private final AtomicReference<ObjectInputStream> in;
 	private final AtomicReference<ObjectOutputStream> out;
+	private final NoCloseInputStream _in;
+	private final NoCloseOutputStream _out;
 	private final Deque<Serializable> queue = new LinkedList<Serializable>();
 
 	public AbstractClient(InetAddress ip, int port) throws IOException {
 		socket = new Socket(ip, port);
 		socket.getOutputStream().write('C');
-		out = new AtomicReference<ObjectOutputStream>(new ObjectOutputStream(socket.getOutputStream()));
+		_out = new NoCloseOutputStream(socket.getOutputStream());
+		out = new AtomicReference<ObjectOutputStream>(new ObjectOutputStream(_out));
 		int serverInit = socket.getInputStream().read();
 		if (serverInit != 'S') {
 			throw new IOException("Server INIT " + (char) serverInit + " != S");
 		}
-		in = new AtomicReference<ObjectInputStream>(new ObjectInputStream(socket.getInputStream()));
+		_in = new NoCloseInputStream(socket.getInputStream());
+		in = new AtomicReference<ObjectInputStream>(new ObjectInputStream(_in));
 	}
 
 	@Override
@@ -47,7 +53,7 @@ public abstract class AbstractClient extends Thread {
 						queue.notify();
 					}
 					in.get().close();
-					in.set(new ObjectInputStream(socket.getInputStream()));
+					in.set(new ObjectInputStream(_in));
 				}
 			} catch (EOFException ex) {
 				interrupt();
@@ -80,7 +86,7 @@ public abstract class AbstractClient extends Thread {
 				out.get().writeObject(packet);
 				out.get().flush();
 				out.get().close();
-				out.set(new ObjectOutputStream(socket.getOutputStream()));
+				out.set(new ObjectOutputStream(_out));
 			} catch (IOException ex) {
 				Logger.getLogger(AbstractClient.class.getName()).log(Level.SEVERE, null, ex);
 				interrupt();

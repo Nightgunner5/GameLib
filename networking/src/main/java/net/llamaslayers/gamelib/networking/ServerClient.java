@@ -19,6 +19,8 @@ public final class ServerClient extends Thread {
 	private final Socket socket;
 	private final AtomicReference<ObjectInputStream> in;
 	private final AtomicReference<ObjectOutputStream> out;
+	private final NoCloseInputStream _in;
+	private final NoCloseOutputStream _out;
 	private final Deque<Serializable> queue = new LinkedList<Serializable>();
 
 	ServerClient(Socket socket, int id, ThreadGroup group, AbstractServer server) throws IOException {
@@ -28,11 +30,13 @@ public final class ServerClient extends Thread {
 		this.socket = socket;
 		socket.setSoTimeout(30000);
 		socket.getOutputStream().write('S');
-		out = new AtomicReference<ObjectOutputStream>(new ObjectOutputStream(socket.getOutputStream()));
+		_out = new NoCloseOutputStream(socket.getOutputStream());
+		out = new AtomicReference<ObjectOutputStream>(new ObjectOutputStream(_out));
 		int clientInit = socket.getInputStream().read();
 		if (clientInit != 'C')
 			throw new IOException("Client INIT " + (char) clientInit + " != C");
-		in = new AtomicReference<ObjectInputStream>(new ObjectInputStream(socket.getInputStream()));
+		_in = new NoCloseInputStream(socket.getInputStream());
+		in = new AtomicReference<ObjectInputStream>(new ObjectInputStream(_in));
 	}
 
 	@Override
@@ -51,7 +55,7 @@ public final class ServerClient extends Thread {
 						queue.notify();
 					}
 					in.get().close();
-					in.set(new ObjectInputStream(socket.getInputStream()));
+					in.set(new ObjectInputStream(_in));
 				}
 			} catch (EOFException ex) {
 				interrupt();
@@ -86,7 +90,7 @@ public final class ServerClient extends Thread {
 				out.get().writeObject(packet);
 				out.get().flush();
 				out.get().close();
-				out.set(new ObjectOutputStream(socket.getOutputStream()));
+				out.set(new ObjectOutputStream(_out));
 			} catch (IOException ex) {
 				Logger.getLogger(ServerClient.class.getName()).log(Level.SEVERE, null, ex);
 				interrupt();
