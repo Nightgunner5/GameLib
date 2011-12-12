@@ -12,18 +12,6 @@
 		<module>scriptingbase</module>
 		<module>networking</module>
 		<module>networkedlua</module>
-  </modules>
-
-	<dependencies>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scriptingbase</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>networking</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-	</dependencies>
+		<module>buzzwordbingo</module>
+	</modules>
 </project>
